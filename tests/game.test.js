@@ -27,7 +27,8 @@ const sandbox = {
   Date, Math, toasts: [], pendingTimeout: null
 };
 vm.createContext(sandbox);
-const source = fs.readFileSync("app.js", "utf8") + `\nglobalThis.game = { state, names, duplicateNameIndex, shuffle, chooseStarter, discussionOrder, finishElimination, submitWhiteGuess, result, roleCounter, render, pauseTimer, saveSessionGame };`;
+const source = fs.readFileSync("app.js", "utf8") + `\nglobalThis.game = { state, names, duplicateNameIndex, shuffle, chooseStarter, discussionOrder, finishElimination, submitWhiteGuess, result, roleCounter, render, pauseTimer, saveSessionGame, saveSetup, loadSessionGame, normalizeAvatars, startGame, DEFAULT_PAIRS };`;
+vm.runInContext(fs.readFileSync("words.js", "utf8"), sandbox);
 vm.runInContext(source, sandbox);
 const game = sandbox.game;
 
@@ -50,6 +51,58 @@ function resetRoles(roles) {
 }
 
 const tests = [
+  ["built-in library has valid distinct word pairs without duplicates", () => {
+    const seen = new Set();
+    for (const [category, pairs] of Object.entries(game.DEFAULT_PAIRS)) {
+      assert(category !== "My words" && pairs.length > 0, "invalid or empty pack");
+      for (const pair of pairs) {
+        assert(Array.isArray(pair) && pair.length === 2 && pair.every(word => typeof word === "string" && word.trim() === word && word.length > 0 && word.length <= 40), "malformed pair in " + category);
+        const normalized = pair.map(word => word.normalize("NFKC").toLocaleLowerCase());
+        assert(normalized[0] !== normalized[1], "identical words in " + category);
+        const key = normalized.sort().join("|");
+        assert(!seen.has(key), "duplicate pair: " + key); seen.add(key);
+      }
+    }
+    assert(seen.size >= 240, "word library unexpectedly small");
+  }],
+  ["every built-in pack can assign secret roles", () => {
+    for (const category of Object.keys(game.DEFAULT_PAIRS)) {
+      resetRoles([["civilian", true], ["civilian", true], ["imposter", true]]);
+      game.state.imposterCount = 1; game.state.whiteCount = 0; game.state.category = category;
+      game.startGame();
+      assert(game.state.screen === "handoff" && game.state.roles.length === 3, "pack failed to start: " + category);
+      assert(game.DEFAULT_PAIRS[category].some(pair => pair.slice().sort().join("|") === game.state.pair.slice().sort().join("|")), "wrong pack used");
+      assert(game.state.roles.every(role => role.word === game.state.pair[role.type === "civilian" ? 0 : 1]), "incorrect role words");
+    }
+  }],
+  ["word library loads before the game and is cached offline", () => {
+    const html = fs.readFileSync("index.html", "utf8");
+    assert(html.indexOf('src="words.js"') >= 0 && html.indexOf('src="words.js"') < html.indexOf('src="app.js"'), "library load order is wrong");
+    assert(fs.readFileSync("sw.js", "utf8").includes('"./words.js"'), "library missing from offline cache");
+  }],
+  ["avatar selections persist in setup and resumed games", () => {
+    resetRoles([["civilian", true], ["civilian", true], ["imposter", true]]);
+    game.state.avatars = ["bunny", "cat", "pup"];
+    game.saveSetup(); game.saveSessionGame();
+    assert(JSON.parse(sandbox.localStorage.getItem("hush-setup")).avatars.join(",") === "bunny,cat,pup", "setup lost chosen avatars");
+    assert(game.loadSessionGame().avatars.join(",") === "bunny,cat,pup", "resume lost chosen avatars");
+  }],
+  ["older saved games and invalid avatars get safe defaults", () => {
+    resetRoles([["civilian", true], ["civilian", true], ["imposter", true]]);
+    game.saveSessionGame();
+    const saved = JSON.parse(sandbox.sessionStorage.getItem("hush-active-game"));
+    delete saved.state.avatars;
+    sandbox.sessionStorage.setItem("hush-active-game", JSON.stringify(saved));
+    assert(game.loadSessionGame().avatars.join(",") === "bear,cat,bunny", "older game failed avatar migration");
+    assert(game.normalizeAvatars(["pup", "invalid", null], 3).join(",") === "pup,cat,bunny", "invalid avatar was accepted");
+  }],
+  ["player count changes keep avatars aligned", () => {
+    game.state.screen = "setup"; game.state.players = ["A", "B", "C"]; game.state.avatars = ["pup", "cat", "bunny"];
+    clickTarget({ action: "players-up" });
+    assert(game.state.avatars.length === 4 && game.state.avatars[0] === "pup", "adding player lost avatars");
+    clickTarget({ action: "players-down" });
+    assert(game.state.avatars.join(",") === "pup,cat,bunny", "removing player misaligned avatars");
+  }],
   ["unique names ignore case and repeated spaces", () => {
     assert(game.duplicateNameIndex(["Alex", " alex "]) === 1, "case duplicate missed");
     assert(game.duplicateNameIndex(["Alex Tan", "Alex   Tan"]) === 1, "space duplicate missed");

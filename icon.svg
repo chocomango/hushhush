@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#16141b"/>
-  <path d="M108 236c78-110 219-110 296 0-77 111-218 111-296 0Z" fill="none" stroke="#f5f1e8" stroke-width="24"/>
-  <circle cx="256" cy="236" r="62" fill="#ff766b"/>
-  <circle cx="278" cy="214" r="18" fill="#f5f1e8"/>
-  <path d="M173 382c55-31 111-31 166 0" fill="none" stroke="#c7f36b" stroke-linecap="round" stroke-width="24"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="28" fill="#e7edda"/><g stroke="#b3a28a" stroke-width="2.5" fill="#fffdf5"><circle cx="36" cy="35" r="12"/><circle cx="84" cy="35" r="12"/><path d="M23 67C20 15 100 15 97 67L98 88Q98 103 80 101H40Q22 103 22 88Z"/></g><g transform="translate(60 60)"><g fill="#65564a"><circle cx="-13" cy="0" r="3"/><circle cx="13" cy="0" r="3"/><path d="M-3 9q3 4 6 0" fill="none" stroke="#65564a" stroke-width="2.5" stroke-linecap="round"/></g><g fill="#eeb9b2" opacity=".8"><ellipse cx="-25" cy="9" rx="8" ry="5"/><ellipse cx="25" cy="9" rx="8" ry="5"/></g></g></svg>

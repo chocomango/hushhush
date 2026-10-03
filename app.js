@@ -1,25 +1,32 @@
-const DEFAULT_PAIRS = {
-  "Everyday": [
-    ["Coffee", "Tea"], ["Fork", "Spoon"], ["Shower", "Bath"], ["Shoes", "Slippers"],
-    ["Pillow", "Blanket"], ["Phone", "Laptop"], ["Door", "Window"], ["Pen", "Pencil"]
-  ],
-  "Food": [
-    ["Pizza", "Burger"], ["Sushi", "Dumpling"], ["Pancake", "Waffle"], ["Ketchup", "Mustard"],
-    ["Lemon", "Lime"], ["Cake", "Pie"], ["Rice", "Noodles"], ["Apple", "Pear"]
-  ],
-  "Places": [
-    ["Beach", "Pool"], ["School", "Office"], ["Airport", "Station"], ["Cinema", "Theatre"],
-    ["Museum", "Library"], ["Hotel", "Hospital"], ["Zoo", "Aquarium"], ["Forest", "Jungle"]
-  ],
-  "Animals": [
-    ["Cat", "Dog"], ["Lion", "Tiger"], ["Shark", "Dolphin"], ["Frog", "Toad"],
-    ["Bee", "Wasp"], ["Rabbit", "Hamster"], ["Eagle", "Owl"], ["Crocodile", "Alligator"]
-  ],
-  "Wild card": [
-    ["Moon", "Sun"], ["Wedding", "Funeral"], ["Dream", "Nightmare"], ["Hero", "Villain"],
-    ["Rich", "Famous"], ["Ghost", "Zombie"], ["Past", "Future"], ["Truth", "Dare"]
-  ]
-};
+const AVATARS = [
+  { id: "bear", name: "Milk Bear", color: "#fff8e9", ears: "round" },
+  { id: "cat", name: "Biscuit Cat", color: "#f5ddad", ears: "point" },
+  { id: "bunny", name: "Mochi Bunny", color: "#f1d6df", ears: "long" },
+  { id: "mint", name: "Mint Bean", color: "#d4e1c3" },
+  { id: "cloud", name: "Cloud Puff", color: "#c9dee4" },
+  { id: "lilac", name: "Lilac Bear", color: "#e2d6ee", ears: "round" },
+  { id: "peach", name: "Peach Bun", color: "#f4cdb5" },
+  { id: "pup", name: "Cocoa Pup", color: "#dfc9b3", ears: "floppy" }
+];
+function normalizeAvatars(value, count) {
+  return Array.from({ length: count }, (_, i) => AVATARS.some(a => a.id === value?.[i]) ? value[i] : AVATARS[i % AVATARS.length].id);
+}
+function avatarArt(id) {
+  const a = AVATARS.find(a => a.id === id) || AVATARS[0];
+  const ears = a.ears === "round" ? '<circle cx="32" cy="32" r="13"/><circle cx="68" cy="32" r="13"/>'
+    : a.ears === "point" ? '<path d="M24 43V18l24 18M76 43V18L52 36"/>'
+    : a.ears === "long" ? '<ellipse cx="35" cy="25" rx="9" ry="21"/><ellipse cx="65" cy="25" rx="9" ry="21"/>'
+    : a.ears === "floppy" ? '<ellipse cx="22" cy="52" rx="11" ry="24"/><ellipse cx="78" cy="52" rx="11" ry="24"/>' : "";
+  return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g fill="${a.color}" stroke="#ac9781" stroke-width="2.2" stroke-linejoin="round">${ears}<path d="M20 60C16 17 84 17 80 60l2 18q0 14-18 12H36Q18 92 18 78Z"/></g><g fill="#665449"><circle cx="40" cy="54" r="2.6"/><circle cx="60" cy="54" r="2.6"/></g><path d="M47 63q3 3 6 0" fill="none" stroke="#665449" stroke-width="2" stroke-linecap="round"/><g fill="#e7aaa9"><ellipse cx="30" cy="62" rx="6" ry="4"/><ellipse cx="70" cy="62" rx="6" ry="4"/></g></svg>`;
+}
+function playerAvatar(index, large = false) {
+  return `<span class="player-avatar${large ? " large" : ""}" aria-hidden="true">${avatarArt(state.avatars[index])}</span>`;
+}
+function playerSetup(name, i) {
+  const selected = AVATARS.find(a => a.id === state.avatars[i]) || AVATARS[0];
+  return `<div class="player-setup"><div class="player-name-row">${playerAvatar(i)}<input aria-label="Player ${i+1} name" data-player="${i}" maxlength="24" value="${escapeHtml(name)}" placeholder="Player ${i+1}"></div><details class="avatar-picker" data-avatar-picker="${i}"><summary>Choose avatar <span>${selected.name}</span></summary><div class="avatar-options" role="group" aria-label="Avatar for player ${i+1}">${AVATARS.map(a => `<button type="button" class="avatar-option" data-avatar-player="${i}" data-avatar-id="${a.id}" aria-label="${a.name} for player ${i+1}" aria-pressed="${a.id === selected.id}">${avatarArt(a.id)}<span>${a.name}</span></button>`).join("")}</div></details></div>`;
+}
+
 
 function loadStoredJson(key, fallback) {
   try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; }
@@ -47,6 +54,7 @@ function loadSessionGame() {
     const whiteGuesses = {};
     if (value.whiteGuesses && typeof value.whiteGuesses === "object") Object.entries(value.whiteGuesses).forEach(([index, guess]) => { if (Number.isSafeInteger(+index) && +index >= 0 && +index < roles.length && typeof guess === "string") whiteGuesses[index] = guess.slice(0, 40); });
     return {
+      avatars: normalizeAvatars(value.avatars, value.players.length),
       screen: value.screen, players: value.players.map(name => name.slice(0, 24)), roles, pair: value.pair.map(word => word.slice(0, 40)),
       revealIndex: value.revealIndex, starter: Number.isSafeInteger(value.starter) && value.starter >= 0 && value.starter < roles.length ? value.starter : 0,
       turnPosition: Math.min(roles.length - 1, Math.max(0, Number.isSafeInteger(value.turnPosition) ? value.turnPosition : 0)), clueCycle: Math.min(100, Math.max(1, Number.isSafeInteger(value.clueCycle) ? value.clueCycle : 1)),
@@ -69,7 +77,7 @@ const savedSetup = loadStoredJson("hush-setup", {});
 const savedPlayers = Array.isArray(savedSetup.players) && savedSetup.players.length >= 3 && savedSetup.players.length <= 12 ? savedSetup.players.map(name => String(name).slice(0, 24)) : ["", "", "", ""];
 const app = document.querySelector("#app");
 const state = {
-  screen: "home", players: savedPlayers, imposterCount: Number.isSafeInteger(savedSetup.imposterCount) ? savedSetup.imposterCount : 1, whiteCount: Number.isSafeInteger(savedSetup.whiteCount) ? savedSetup.whiteCount : 1,
+  screen: "home", players: savedPlayers, avatars: normalizeAvatars(savedSetup.avatars, savedPlayers.length), imposterCount: Number.isSafeInteger(savedSetup.imposterCount) ? savedSetup.imposterCount : 1, whiteCount: Number.isSafeInteger(savedSetup.whiteCount) ? savedSetup.whiteCount : 1,
   category: DEFAULT_PAIRS[savedSetup.category] ? savedSetup.category : "Everyday", customPairs: normalizeCustomPairs(loadStoredJson("hush-custom-pairs", [])),
   roles: [], revealIndex: 0, pair: null, starter: 0, turnPosition: 0, clueCycle: 1, roundNumber: 1, duration: 30, remaining: 30,
   timerId: null, timerRunning: false, timerDeadline: null, selectedVote: null, eliminatedIndex: null, winner: null, whiteGuesses: {}, offlineStatus: "checking"
@@ -101,7 +109,7 @@ function syncSetupInputs() {
   if (document.querySelector("#category")) state.category = document.querySelector("#category").value;
 }
 function saveSetup() {
-  saveStoredJson("hush-setup", { players: state.players, imposterCount: state.imposterCount, whiteCount: state.whiteCount, category: state.category });
+  saveStoredJson("hush-setup", { players: state.players, avatars: state.avatars, imposterCount: state.imposterCount, whiteCount: state.whiteCount, category: state.category });
 }
 function saveSessionGame() {
   if (!state.roles.length || ["home", "setup", "result"].includes(state.screen)) return;
@@ -144,21 +152,21 @@ function render() {
 
 function home() { return `
   <section class="screen hero">
-    <p class="eyebrow">PASS • PLAY • SUSPECT</p>
-    <h1>Someone here is lying.</h1>
-    <p class="lede">A pocket-sized game of Civilians, Imposters, and Mr. White. No accounts, no internet—just pass the phone and keep a straight face.</p>
+    <p class="eyebrow">LITTLE FRIENDS, BIG SECRETS</p>
+    <h1>A cozy little<br><span>game of secrets.</span></h1>
+    <p class="lede">Gather your friends, pass the phone, and find the sneaky one. A little bluffing, a lot of giggles.</p>
     <div class="button-row">${resumableGame ? `<button class="button primary" data-action="resume-game">Continue game</button><button class="button secondary" data-action="new-game">Start over</button>` : `<button class="button primary" data-action="new-game">Start a game</button>`}<button class="button secondary" data-action="open-help">How it works</button></div>
-    <div class="hero-art" aria-hidden="true"><div class="orbit orbit-one">BLUFF</div><div class="orbit orbit-two">CLUE</div><div class="scribble"></div><div class="eye"></div><div class="spark spark-one">✦</div><div class="spark spark-two">✦</div></div>
+    <div class="hero-art" aria-hidden="true"><img src="friends.svg" alt="" width="600" height="230"></div>
     <p class="tiny offline-status">${state.offlineStatus === "ready" ? "● Offline ready" : state.offlineStatus === "unavailable" ? "Offline mode unavailable" : "Preparing offline play…"} • 3–12 players</p>
   </section>`; }
 
 function setup() { return `
   <section class="screen">
-    <p class="eyebrow">GAME SETUP</p><h2>Gather your suspects.</h2>
+    <p class="eyebrow">GAME SETUP</p><h2>Gather your little crew.</h2>
     <div class="setup-columns">
       <div>
         <div class="stepper"><div><b>Players</b><div class="tiny">3 to 12 people</div></div><div class="stepper-controls"><button data-action="players-down" aria-label="Fewer players" ${state.players.length <= 3 ? "disabled" : ""}>−</button><span aria-live="polite">${state.players.length}</span><button data-action="players-up" aria-label="More players" ${state.players.length >= 12 ? "disabled" : ""}>+</button></div></div>
-        <div class="player-list">${state.players.map((name, i) => `<input aria-label="Player ${i+1} name" data-player="${i}" maxlength="24" value="${escapeHtml(name)}" placeholder="Player ${i+1}">`).join("")}</div>
+        <div class="player-list">${state.players.map(playerSetup).join("")}</div>
       </div>
       <div>
         <div class="section"><div class="section-heading"><h3>Hidden roles</h3><small>${state.players.length - state.imposterCount - state.whiteCount} Civilians</small></div>
@@ -175,7 +183,7 @@ function setup() { return `
 
 function handoff() {
   const name = names()[state.revealIndex];
-  return `<section class="screen handoff"><div class="avatar">${escapeHtml(initials(name))}</div><p class="eyebrow">PLAYER ${state.revealIndex + 1} OF ${state.players.length}</p><h2>Pass to ${escapeHtml(name)}</h2><p class="privacy">Make sure nobody else can see the screen. Hold the button when you're ready.</p><button class="button primary wide hold-button" data-action="hold-reveal">Hold to reveal<div class="progress"><i></i></div></button></section>`;
+  return `<section class="screen handoff">${playerAvatar(state.revealIndex, true)}<p class="eyebrow">PLAYER ${state.revealIndex + 1} OF ${state.players.length}</p><h2>Pass to ${escapeHtml(name)}</h2><p class="privacy">Make sure nobody else can see the screen. Hold the button when you're ready.</p><button class="button primary wide hold-button" data-action="hold-reveal">Hold to reveal<div class="progress"><i></i></div></button></section>`;
 }
 
 function role() {
@@ -188,7 +196,7 @@ function round() {
   const pct = `${(state.remaining / state.duration) * 100}%`;
   const order = discussionOrder();
   const speaker = order[state.turnPosition % order.length];
-  return `<section class="screen"><div class="game-header"><div><p class="eyebrow">DISCUSSION</p><h2>Describe your word.</h2></div><span class="round-pill">ROUND ${state.roundNumber}</span></div><div class="speaker-card"><span>NOW SPEAKING · CLUE CYCLE ${state.clueCycle}</span><b>${escapeHtml(names()[speaker])}</b><small>${state.turnPosition + 1} of ${order.length}</small></div><div class="timer ${state.timerRunning ? "is-running" : ""} ${state.remaining === 0 ? "is-done" : ""}" style="--timer:${pct}"><div class="timer-inner"><div class="timer-time">${formatTime(state.remaining)}</div><small>${state.remaining === 0 ? "TIME'S UP" : state.timerRunning ? "COUNTING" : "READY"}</small></div></div><div class="timer-adjust" aria-label="Adjust speaking time"><button data-action="timer-down" aria-label="Remove five seconds" ${state.duration <= 10 ? "disabled" : ""}>−5</button><span><b>${state.duration}s</b><small>per person</small></span><button data-action="timer-up" aria-label="Add five seconds" ${state.duration >= 180 ? "disabled" : ""}>+5</button></div><div class="timer-actions"><button class="button secondary" data-action="reset-timer">Reset</button><button class="button primary" data-action="toggle-timer">${state.timerRunning ? "Pause" : state.remaining < state.duration && state.remaining > 0 ? "Resume" : "Start"}</button><button class="button secondary" data-action="next-speaker">Next player →</button></div><button class="button vote-button wide" data-action="vote">End discussion & vote</button></section>`;
+  return `<section class="screen"><div class="game-header"><div><p class="eyebrow">DISCUSSION</p><h2>Describe your word.</h2></div><span class="round-pill">ROUND ${state.roundNumber}</span></div><div class="speaker-card"><span>NOW SPEAKING · CLUE CYCLE ${state.clueCycle}</span><b class="player-identity">${playerAvatar(speaker)}${escapeHtml(names()[speaker])}</b><small>${state.turnPosition + 1} of ${order.length}</small></div><div class="timer ${state.timerRunning ? "is-running" : ""} ${state.remaining === 0 ? "is-done" : ""}" style="--timer:${pct}"><div class="timer-inner"><div class="timer-time">${formatTime(state.remaining)}</div><small>${state.remaining === 0 ? "TIME'S UP" : state.timerRunning ? "COUNTING" : "READY"}</small></div></div><div class="timer-adjust" aria-label="Adjust speaking time"><button data-action="timer-down" aria-label="Remove five seconds" ${state.duration <= 10 ? "disabled" : ""}>−5</button><span><b>${state.duration}s</b><small>per person</small></span><button data-action="timer-up" aria-label="Add five seconds" ${state.duration >= 180 ? "disabled" : ""}>+5</button></div><div class="timer-actions"><button class="button secondary" data-action="reset-timer">Reset</button><button class="button primary" data-action="toggle-timer">${state.timerRunning ? "Pause" : state.remaining < state.duration && state.remaining > 0 ? "Resume" : "Start"}</button><button class="button secondary" data-action="next-speaker">Next player →</button></div><button class="button vote-button wide" data-action="vote">End discussion & vote</button></section>`;
 }
 
 function discussionOrder() {
@@ -203,11 +211,11 @@ function chooseStarter(allowMrWhite = false) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function vote() { return `<section class="screen"><p class="eyebrow">ROUND ${state.roundNumber} • THE VOTE</p><h2>Who seems suspicious?</h2><p class="muted">Only surviving players can be eliminated. If the vote is tied, discuss and vote again until one player is chosen.</p><div class="vote-list">${activeIndices().map(i => `<button class="vote ${state.selectedVote === i ? "selected" : ""}" data-vote="${i}" aria-pressed="${state.selectedVote === i}"><span>${escapeHtml(names()[i])}</span><span>${state.selectedVote === i ? "SELECTED" : "TAP TO VOTE"}</span></button>`).join("")}</div><div class="button-row"><button class="button danger wide" data-action="eliminate" ${state.selectedVote === null ? "disabled" : ""}>${state.selectedVote === null ? "Choose a player" : `Eliminate ${escapeHtml(names()[state.selectedVote])}`}</button><button class="button secondary" data-action="back-round">Back</button></div></section>`; }
+function vote() { return `<section class="screen"><p class="eyebrow">ROUND ${state.roundNumber} • THE VOTE</p><h2>Who seems suspicious?</h2><p class="muted">Only surviving players can be eliminated. If the vote is tied, discuss and vote again until one player is chosen.</p><div class="vote-list">${activeIndices().map(i => `<button class="vote ${state.selectedVote === i ? "selected" : ""}" data-vote="${i}" aria-pressed="${state.selectedVote === i}"><span class="player-identity">${playerAvatar(i)}${escapeHtml(names()[i])}</span><span>${state.selectedVote === i ? "SELECTED" : "TAP TO VOTE"}</span></button>`).join("")}</div><div class="button-row"><button class="button danger wide" data-action="eliminate" ${state.selectedVote === null ? "disabled" : ""}>${state.selectedVote === null ? "Choose a player" : `Eliminate ${escapeHtml(names()[state.selectedVote])}`}</button><button class="button secondary" data-action="back-round">Back</button></div></section>`; }
 
 function elimination() {
   const i = state.eliminatedIndex, role = state.roles[i];
-  return `<section class="screen reveal-result elimination-reveal"><div class="reveal-rays" aria-hidden="true"></div><p class="eyebrow">PLAYER ELIMINATED</p><div class="result-icon">${role.type === "civilian" ? "😬" : role.type === "imposter" ? "🕵️" : "⬜"}</div><h2>${escapeHtml(names()[i])} was ${roleName(role.type)}.</h2><p class="lede" style="margin-inline:auto">${role.type === "white" ? "Mr. White now gets one final chance to steal the game." : role.type === "imposter" ? "One Imposter is out. Are there more hiding?" : "An innocent Civilian has been eliminated."}</p><button class="button primary wide" data-action="after-elimination">${role.type === "white" ? "Make the final guess" : "Check the game"}</button></section>`;
+  return `<section class="screen reveal-result elimination-reveal"><div class="reveal-rays" aria-hidden="true"></div><p class="eyebrow">PLAYER ELIMINATED</p><div class="eliminated-avatar">${playerAvatar(i, true)}</div><div class="result-icon">${role.type === "civilian" ? "😬" : role.type === "imposter" ? "🕵️" : "⬜"}</div><h2>${escapeHtml(names()[i])} was ${roleName(role.type)}.</h2><p class="lede" style="margin-inline:auto">${role.type === "white" ? "Mr. White now gets one final chance to steal the game." : role.type === "imposter" ? "One Imposter is out. Are there more hiding?" : "An innocent Civilian has been eliminated."}</p><button class="button primary wide" data-action="after-elimination">${role.type === "white" ? "Make the final guess" : "Check the game"}</button></section>`;
 }
 
 function whiteGuess() {
@@ -222,7 +230,7 @@ function result() {
     const won = state.winner === "civilian" && role.type === "civilian" || state.winner === "infiltrator" && role.type !== "civilian" || state.winner === "white" && index === state.eliminatedIndex;
     const guessWon = state.winner === "white" && index === state.eliminatedIndex;
     const guess = role.type === "white" && state.whiteGuesses[index] ? `<em class="${guessWon ? "guess-correct" : "guess-wrong"}">${guessWon ? "Correct" : "Incorrect"}: “${escapeHtml(state.whiteGuesses[index])}”</em>` : "";
-    return `<div class="player-outcome ${won ? "won" : "lost"}"><span class="outcome-name">${escapeHtml(names()[index])}<small>${roleName(role.type)}${guess}</small></span><span class="outcome-tags">${won ? `<b class="status winner-status">Winner</b>` : ""}<b class="status ${role.active ? "alive-status" : "out-status"}">${role.active ? "Survived" : `Voted · R${role.eliminatedRound || "?"}`}</b></span></div>`;
+    return `<div class="player-outcome ${won ? "won" : "lost"}"><span class="player-identity">${playerAvatar(index)}<span class="outcome-name">${escapeHtml(names()[index])}<small>${roleName(role.type)}${guess}</small></span></span><span class="outcome-tags">${won ? `<b class="status winner-status">Winner</b>` : ""}<b class="status ${role.active ? "alive-status" : "out-status"}">${role.active ? "Survived" : `Voted · R${role.eliminatedRound || "?"}`}</b></span></div>`;
   }).join("");
   return `<section class="screen reveal-result celebration winner-${state.winner}"><div class="confetti" aria-hidden="true">${particles}</div><div class="victory-halo" aria-hidden="true"></div><p class="eyebrow">GAME OVER</p><div class="result-icon">${state.winner === "civilian" ? "🏆" : state.winner === "infiltrator" ? "🕵️" : "⬜"}</div><h2>${label}</h2><p class="lede" style="margin-inline:auto">${note}</p><div class="word-pair"><span class="word-chip">Civilian word: <b>${escapeHtml(state.pair[0])}</b></span><span class="word-chip">Imposter word: <b>${escapeHtml(state.pair[1])}</b></span></div><div class="final-roles">${playerRows}</div><div class="button-row"><button class="button primary wide" data-action="play-again">Play again</button><button class="button secondary wide" data-action="home">Home</button></div></section>`;
 }
@@ -344,6 +352,16 @@ document.addEventListener("click", e => {
     if (!state.customPairs.length && state.category === "My words") state.category = "Everyday";
     saveSetup(); renderCustomPairs(); toast("Word pair removed"); return;
   }
+  const avatarButton = e.target.closest("[data-avatar-player]");
+  if (avatarButton && state.screen === "setup") {
+    const index = Number(avatarButton.dataset.avatarPlayer);
+    const id = avatarButton.dataset.avatarId;
+    if (!Number.isSafeInteger(index) || index < 0 || index >= state.players.length || !AVATARS.some(a => a.id === id)) return;
+    syncSetupInputs(); state.avatars[index] = id; saveSetup(); render();
+    const picker = app.querySelector(`[data-avatar-picker="${index}"]`);
+    if (picker) { picker.open = true; picker.querySelector(`[data-avatar-id="${id}"]`)?.focus({ preventScroll: true }); }
+    return;
+  }
   const roleButton = e.target.closest("[data-role-type]");
   if (roleButton) {
     syncSetupInputs();
@@ -365,8 +383,8 @@ document.addEventListener("click", e => {
   if (action === "home") { const activeGame = state.roles.length && !["home", "setup", "result"].includes(state.screen); if (activeGame && !window.confirm("Leave this game? Current progress will be lost.")) return; pauseTimer(); clearSessionGame(); resumableGame = null; state.roles = []; state.screen = "home"; render(); }
   if (action === "open-help") { if (state.timerRunning) { pauseTimer(); render(); } document.querySelector("#help-dialog").showModal(); }
   if (action === "close-help") document.querySelector("#help-dialog").close();
-  if (action === "players-up" && state.players.length < 12) { syncSetupInputs(); state.players.push(""); saveSetup(); render(); }
-  if (action === "players-down" && state.players.length > 3) { syncSetupInputs(); state.players.pop(); while (state.imposterCount + state.whiteCount > state.players.length - 2) { if (state.whiteCount > 0) state.whiteCount--; else state.imposterCount--; } saveSetup(); render(); }
+  if (action === "players-up" && state.players.length < 12) { syncSetupInputs(); state.players.push(""); state.avatars = normalizeAvatars(state.avatars, state.players.length); saveSetup(); render(); }
+  if (action === "players-down" && state.players.length > 3) { syncSetupInputs(); state.players.pop(); state.avatars.pop(); while (state.imposterCount + state.whiteCount > state.players.length - 2) { if (state.whiteCount > 0) state.whiteCount--; else state.imposterCount--; } saveSetup(); render(); }
   if (action === "start-game") startGame();
   if (action === "custom-words") openCustomWords();
   if (action === "close-words") { document.querySelector("#words-dialog").close(); if (state.screen === "setup") render(); }

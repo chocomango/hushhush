@@ -23,6 +23,14 @@ The included GitHub Actions workflow tests and deploys the game automatically wh
 
 GitHub will provide the public URL after the first deployment.
 
+## Word packs
+
+The built-in library lives in `words.js`: 240 pairs across Everyday, Food, Places, Animals, Wild card, Cozy things, Activities, and Singapore treats. This local script loads before the game and is included in the offline cache. Player-created pairs still live in browser storage under **My words**.
+
+To expand a pack, add a pair such as `["Coffee", "Tea"]` to its array. Use two related but different words, at most 40 characters each. Avoid duplicate pairs, including reversed pairs. Either word can be assigned to Civilians. New categories appear automatically in the word-pack menu.
+
+When publishing changes to `words.js`, increment the cache version in `sw.js` so existing installations receive the updated library.
+
 ## Quality checks
 
 ```bash
