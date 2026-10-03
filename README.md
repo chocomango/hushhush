@@ -1,6 +1,6 @@
 # Hush
 
-A mobile-first, pass-and-play Imposter / Undercover game. It is a dependency-free static site designed for GitHub Pages and works offline after the first visit.
+A mobile-first, pass-and-play Undercover game with Civilians, Imposters, and Mr. White. Civilians and Imposters receive related words without being told their roles; Mr. White receives no word. The game tracks eliminations across rounds, handles Mr. White's final guess, and automatically detects the official victory conditions.
 
 ## Play locally
 
@@ -20,3 +20,7 @@ Then visit `http://localhost:8000`.
 4. Choose `main`, `/ (root)`, and save.
 
 GitHub will provide the public URL after the first deployment.
+
+## Rules reference
+
+The game flow follows the [official Undercover rules](https://www.yanstarstudio.com/undercover-how-to-play): Civilians share one word, Imposters receive a related word, Mr. White receives no word, Civilians win by eliminating every infiltrator, infiltrators win when only one Civilian remains, and an eliminated Mr. White gets one final guess.

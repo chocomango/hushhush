@@ -83,6 +83,8 @@ input:focus, select:focus { border-color: var(--violet); box-shadow: 0 0 0 3px r
 .section { margin: 30px 0; }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
 .section-heading small { color: var(--muted); }
+.role-count-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.role-count-grid .field-label { margin-top: 0; }
 
 .handoff { text-align: center; padding-top: min(14vh, 120px); }
 .avatar { width: 96px; height: 96px; margin: 0 auto 25px; border-radius: 32px; background: var(--violet); color: #19161e; display: grid; place-items: center; font-size: 2.5rem; font-weight: 950; transform: rotate(-4deg); }
@@ -116,6 +118,9 @@ input:focus, select:focus { border-color: var(--violet); box-shadow: 0 0 0 3px r
 .result-icon { font-size: 4rem; margin: 16px; }
 .word-pair { display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin:20px 0; }
 .word-chip { padding:10px 14px; background:var(--panel); border:1px solid var(--line); border-radius:30px; }
+.final-roles { display:grid; gap:8px; max-width:440px; margin:24px auto; text-align:left; }
+.final-roles div { display:flex; justify-content:space-between; gap:16px; padding:12px 14px; border:1px solid var(--line); border-radius:14px; background:var(--panel); }
+.final-roles b { color:var(--acid); }
 .muted { color: var(--muted); line-height: 1.55; }
 .tiny { color: var(--muted); font-size: .75rem; }
 
