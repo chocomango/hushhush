@@ -19,22 +19,36 @@
     <button class="icon-button" data-action="open-help" aria-label="How to play">?</button>
   </header>
 
-  <main id="app" aria-live="polite"></main>
+  <main id="app"></main>
 
-  <dialog id="help-dialog">
+  <dialog id="help-dialog" aria-labelledby="help-title">
     <button class="dialog-close" data-action="close-help" aria-label="Close">×</button>
     <p class="eyebrow">HOW TO PLAY</p>
-    <h2>Blend in. Find the infiltrators.</h2>
+    <h2 id="help-title">Blend in. Find the infiltrators.</h2>
     <ol class="rules">
       <li><b>Pass the phone.</b> Each player privately reveals their secret.</li>
       <li><b>Give clues.</b> Civilians share a word; Imposters get a similar word. Neither group knows which role they have. Mr. White gets no word and must bluff.</li>
+      <li><b>Start fairly.</b> Mr. White cannot speak first in the opening round, but may start later rounds.</li>
       <li><b>Vote.</b> Eliminate one player, reveal their role, then continue with the survivors.</li>
       <li><b>Win.</b> Civilians must eliminate every Imposter and Mr. White. The infiltrators win when only one Civilian remains. An eliminated Mr. White wins instantly by guessing the Civilian word.</li>
     </ol>
     <p class="muted">Based on the official Undercover pass-and-play rules.</p>
   </dialog>
 
-  <template id="toast-template"><div class="toast"></div></template>
+  <dialog id="words-dialog" aria-labelledby="words-title">
+    <button class="dialog-close" data-action="close-words" aria-label="Close">×</button>
+    <p class="eyebrow">CUSTOM WORDS</p>
+    <h2 id="words-title">Make your own pair.</h2>
+    <p class="muted">Add two related—but meaningfully different—words. Their sides will be randomized each game.</p>
+    <form class="custom-word-form" id="custom-word-form">
+      <label><span class="field-label">FIRST WORD</span><input id="custom-word-one" maxlength="40" autocomplete="off" placeholder="Coffee"></label>
+      <label><span class="field-label">RELATED WORD</span><input id="custom-word-two" maxlength="40" autocomplete="off" placeholder="Tea"></label>
+      <button class="button primary wide" type="submit">Add word pair</button>
+    </form>
+    <div class="custom-pairs" id="custom-pairs"></div>
+  </dialog>
+
+  <template id="toast-template"><div class="toast" role="status"></div></template>
   <script src="app.js" defer></script>
 </body>
 </html>

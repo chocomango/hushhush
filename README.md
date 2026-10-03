@@ -1,6 +1,6 @@
 # Hush
 
-A mobile-first, pass-and-play Undercover game with Civilians, Imposters, and Mr. White. Civilians and Imposters receive related words without being told their roles; Mr. White receives no word. The game tracks eliminations across rounds, handles Mr. White's final guess, and automatically detects the official victory conditions.
+A mobile-first, pass-and-play Undercover game with Civilians, Imposters, and Mr. White. Civilians and Imposters receive related words without being told their roles; Mr. White receives no word. Either word in a pair can be assigned to the Civilians because the sides are randomized for every game. The discussion screen includes an adjustable, reusable per-person timer that resets as play moves to the next speaker. Mr. White is excluded from starting the opening round but may start later rounds. The game tracks eliminations across rounds, handles Mr. White's final guess, and automatically detects the official victory conditions.
 
 ## Play locally
 
@@ -14,12 +14,22 @@ Then visit `http://localhost:8000`.
 
 ## Publish on GitHub Pages
 
+The included GitHub Actions workflow tests and deploys the game automatically whenever `main` is updated.
+
 1. Push the repository to GitHub.
 2. Open **Settings → Pages**.
-3. Under **Build and deployment**, select **Deploy from a branch**.
-4. Choose `main`, `/ (root)`, and save.
+3. Under **Build and deployment**, select **GitHub Actions** as the source.
+4. Push to `main` or run **Deploy Hush to GitHub Pages** manually from the Actions tab.
 
 GitHub will provide the public URL after the first deployment.
+
+## Quality checks
+
+```bash
+npm test
+```
+
+The dependency-free test suite covers victory conditions, Mr. White guesses, starter rules, role swapping, speaker order, result labels, privacy hiding, and saved-game recovery.
 
 ## Rules reference
 
