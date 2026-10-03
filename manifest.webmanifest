@@ -1,0 +1,10 @@
+{
+  "name": "Hush — Offline Imposter Game",
+  "short_name": "Hush",
+  "description": "A pass-and-play social deduction party game.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#16141b",
+  "theme_color": "#16141b",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

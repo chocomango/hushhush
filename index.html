@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16141b">
+  <meta name="description" content="A pass-and-play Imposter and Undercover party game that works offline.">
+  <title>Hush — Offline Imposter Game</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="topbar">
+    <button class="brand" data-action="home" aria-label="Return home">
+      <span class="brand-mark">H</span><span>HUSH</span>
+    </button>
+    <button class="icon-button" data-action="open-help" aria-label="How to play">?</button>
+  </header>
+
+  <main id="app" aria-live="polite"></main>
+
+  <dialog id="help-dialog">
+    <button class="dialog-close" data-action="close-help" aria-label="Close">×</button>
+    <p class="eyebrow">HOW TO PLAY</p>
+    <h2>Blend in. Find the odd one out.</h2>
+    <ol class="rules">
+      <li><b>Pass the phone.</b> Each player privately reveals their role.</li>
+      <li><b>Give clues.</b> Describe your word without saying it. The first player is chosen at random.</li>
+      <li><b>Vote.</b> Eliminate whoever seems suspicious. The minority wins if they survive.</li>
+    </ol>
+    <p class="muted"><b>Imposter:</b> the odd player has no word. <b>Undercover:</b> they see a different but related word.</p>
+  </dialog>
+
+  <template id="toast-template"><div class="toast"></div></template>
+  <script src="app.js" defer></script>
+</body>
+</html>
