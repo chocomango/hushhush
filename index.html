@@ -32,6 +32,7 @@
       <li><b data-i18n-zh="投票。">Vote.</b> <span data-i18n-zh="淘汰一名玩家，公布其身份，再由剩余玩家继续。">Eliminate one player, reveal their role, then continue with the survivors.</span></li>
       <li><b data-i18n-zh="获胜。">Win.</b> <span data-i18n-zh="平民需要淘汰所有卧底和白板。只剩一名平民时，卧底阵营获胜。被淘汰的白板若猜中平民词，立即获胜。">Civilians must eliminate every Imposter and Mr. White. The infiltrators win when only one Civilian remains. An eliminated Mr. White wins instantly by guessing the Civilian word.</span></li>
     </ol>
+    <div class="help-extra"><h3 data-i18n-zh="选择你的玩法">Choose your pace</h3><p data-i18n-zh="经典：按自己的节奏讨论。闪电：每人 15 秒，一轮后投票。奇趣：每轮获得新的描述挑战。">Classic: discuss at your own pace. Blitz: 15 seconds each, one clue cycle then vote. Chaos: a fresh clue challenge every round.</p><h3 data-i18n-zh="特殊身份">Special identities</h3><p data-i18n-zh="5 人及以上可选择特殊身份。小丑拿卧底词，被投票淘汰时独自获胜。共谋者拿平民词，却属于卧底阵营。两者都知道自己的特殊身份。">For 5 or more players, optionally add a Jester or Accomplice. The Jester receives the Imposter word and wins alone when voted out. The Accomplice receives the Civilian word but belongs to the infiltrator team. Both know their special identity.</p><p data-i18n-zh="平民需要淘汰所有卧底、白板和共谋者。小丑属于独立阵营，不计入卧底阵营；游戏结束时仍在场的小丑不会获胜。">Civilians must eliminate all Imposters, Mr. Whites, and Accomplices. The Jester is neutral and does not count as an infiltrator; a surviving Jester does not win with either team.</p><h3 data-i18n-zh="秘密投票">Secret ballots</h3><p data-i18n-zh="在设置中启用秘密投票。逐一传递手机，每位在场玩家投一票，不能投自己。所有人完成后才显示总票数，不会公布谁投了谁。平票时只在平票玩家中进行决胜投票。">Enable secret ballots in setup. Pass the phone so each surviving player casts one vote, excluding themselves. Only totals are shown after everyone finishes; individual choices stay private. Ties trigger a runoff among the tied players.</p><h3 data-i18n-zh="玩得开心，也要公平">Play fair, have fun</h3><p data-i18n-zh="不能直接说出、拼读或翻译词语。所有在场玩家各投一票，只淘汰得票最多的一人；平票时继续讨论并重新投票。被淘汰的玩家不再给线索或投票。">Never say, spell, or translate your secret word. Each surviving player gets one vote; select the player with the most votes. For a tie, discuss and vote again. Eliminated players sit out clues and voting.</p></div>
     <p class="muted" data-i18n-zh="根据《谁是卧底》的官方传手机玩法规则。">Based on the official Undercover pass-and-play rules.</p>
   </dialog>
 
@@ -50,6 +51,7 @@
 
   <template id="toast-template"><div class="toast" role="status"></div></template>
   <script src="words.js" defer></script>
+  <script src="rules.js" defer></script>
   <script src="app.js" defer></script>
 </body>
 </html>
