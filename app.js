@@ -24,7 +24,7 @@ function playerAvatar(index, large = false) {
 }
 function playerSetup(name, i) {
   const selected = AVATARS.find(a => a.id === state.avatars[i]) || AVATARS[0];
-  return `<div class="player-setup"><div class="player-name-row">${playerAvatar(i)}<input aria-label="Player ${i+1} name" data-player="${i}" maxlength="24" value="${escapeHtml(name)}" placeholder="Player ${i+1}"></div><details class="avatar-picker" data-avatar-picker="${i}"><summary>Choose avatar <span>${selected.name}</span></summary><div class="avatar-options" role="group" aria-label="Avatar for player ${i+1}">${AVATARS.map(a => `<button type="button" class="avatar-option" data-avatar-player="${i}" data-avatar-id="${a.id}" aria-label="${a.name} for player ${i+1}" aria-pressed="${a.id === selected.id}">${avatarArt(a.id)}<span>${a.name}</span></button>`).join("")}</div></details></div>`;
+  return `<div class="player-setup"><div class="player-name-row">${playerAvatar(i)}<input aria-label="${t("Player name", "玩家姓名")} ${i+1}" data-player="${i}" maxlength="24" value="${escapeHtml(name)}" placeholder="${t("Player", "玩家")} ${i+1}"></div><details class="avatar-picker" data-avatar-picker="${i}"><summary>${t("Choose avatar", "选择头像")} <span>${avatarName(selected)}</span></summary><div class="avatar-options" role="group" aria-label="${t("Avatar for player", "玩家头像")} ${i+1}">${AVATARS.map(a => `<button type="button" class="avatar-option" data-avatar-player="${i}" data-avatar-id="${a.id}" aria-label="${avatarName(a)} · ${t("Player", "玩家")} ${i+1}" aria-pressed="${a.id === selected.id}">${avatarArt(a.id)}<span>${avatarName(a)}</span></button>`).join("")}</div></details></div>`;
 }
 
 
@@ -54,6 +54,9 @@ function loadSessionGame() {
     const whiteGuesses = {};
     if (value.whiteGuesses && typeof value.whiteGuesses === "object") Object.entries(value.whiteGuesses).forEach(([index, guess]) => { if (Number.isSafeInteger(+index) && +index >= 0 && +index < roles.length && typeof guess === "string") whiteGuesses[index] = guess.slice(0, 40); });
     return {
+      language: value.language === "zh" ? "zh" : "en",
+      category: DEFAULT_PAIRS[value.category] || value.category === "My words" && normalizeCustomPairs(loadStoredJson(value.language === "zh" ? "hush-custom-pairs-zh" : "hush-custom-pairs", [])).length ? value.category : "Everyday",
+      customPairs: normalizeCustomPairs(loadStoredJson(value.language === "zh" ? "hush-custom-pairs-zh" : "hush-custom-pairs", [])),
       avatars: normalizeAvatars(value.avatars, value.players.length),
       screen: value.screen, players: value.players.map(name => name.slice(0, 24)), roles, pair: value.pair.map(word => word.slice(0, 40)),
       revealIndex: value.revealIndex, starter: Number.isSafeInteger(value.starter) && value.starter >= 0 && value.starter < roles.length ? value.starter : 0,
@@ -74,11 +77,13 @@ function normalizeCustomPairs(value) {
     .map(pair => pair.map(word => word.trim().slice(0, 40))).slice(0, 100);
 }
 const savedSetup = loadStoredJson("hush-setup", {});
+const savedLanguage = savedSetup.language === "zh" ? "zh" : "en";
 const savedPlayers = Array.isArray(savedSetup.players) && savedSetup.players.length >= 3 && savedSetup.players.length <= 12 ? savedSetup.players.map(name => String(name).slice(0, 24)) : ["", "", "", ""];
 const app = document.querySelector("#app");
 const state = {
   screen: "home", players: savedPlayers, avatars: normalizeAvatars(savedSetup.avatars, savedPlayers.length), imposterCount: Number.isSafeInteger(savedSetup.imposterCount) ? savedSetup.imposterCount : 1, whiteCount: Number.isSafeInteger(savedSetup.whiteCount) ? savedSetup.whiteCount : 1,
-  category: DEFAULT_PAIRS[savedSetup.category] ? savedSetup.category : "Everyday", customPairs: normalizeCustomPairs(loadStoredJson("hush-custom-pairs", [])),
+  language: savedLanguage,
+  category: DEFAULT_PAIRS[savedSetup.category] ? savedSetup.category : "Everyday", customPairs: normalizeCustomPairs(loadStoredJson(savedLanguage === "zh" ? "hush-custom-pairs-zh" : "hush-custom-pairs", [])),
   roles: [], revealIndex: 0, pair: null, starter: 0, turnPosition: 0, clueCycle: 1, roundNumber: 1, duration: 30, remaining: 30,
   timerId: null, timerRunning: false, timerDeadline: null, selectedVote: null, eliminatedIndex: null, winner: null, whiteGuesses: {}, offlineStatus: "checking"
 };
@@ -99,7 +104,7 @@ function shuffle(items) {
 }
 const initials = (name) => name.trim().slice(0, 1).toUpperCase() || "?";
 
-function names() { return state.players.map((n, i) => n.trim() || `Player ${i + 1}`); }
+function names() { return state.players.map((n, i) => n.trim() || `${t("Player", "玩家")} ${i + 1}`); }
 function duplicateNameIndex(values = names()) {
   const normalized = values.map(name => name.replace(/\s+/g, " ").trim().toLocaleLowerCase());
   return normalized.findIndex((name, index) => normalized.indexOf(name) !== index);
@@ -108,8 +113,31 @@ function syncSetupInputs() {
   document.querySelectorAll("[data-player]").forEach(el => state.players[+el.dataset.player] = el.value);
   if (document.querySelector("#category")) state.category = document.querySelector("#category").value;
 }
+function t(english, chinese, values = {}) {
+  const text = state.language === "zh" ? chinese : english;
+  return text.replace(/\{(\w+)\}/g, (match, key) => values[key] ?? match);
+}
+function avatarName(avatar) {
+  const names = {"Milk Bear": "牛奶熊", "Biscuit Cat": "饼干猫", "Mochi Bunny": "麻薯兔", "Mint Bean": "薄荷豆", "Cloud Puff": "云朵", "Lilac Bear": "丁香熊", "Peach Bun": "桃子包", "Cocoa Pup": "可可狗"};
+  return t(avatar.name, names[avatar.name]);
+}
+function localizeShell() {
+  if (document.documentElement) document.documentElement.lang = state.language === "zh" ? "zh-Hans" : "en";
+  document.title = t("Hush — Offline Imposter Game", "Hush — 离线谁是卧底");
+  document.querySelectorAll("[data-i18n-zh]").forEach(node => {
+    node.dataset.i18nEn ??= node.textContent;
+    node.textContent = t(node.dataset.i18nEn, node.dataset.i18nZh);
+  });
+  document.querySelectorAll("[data-i18n-aria-zh]").forEach(node => {
+    node.dataset.i18nAriaEn ??= node.getAttribute("aria-label");
+    node.setAttribute("aria-label", t(node.dataset.i18nAriaEn, node.dataset.i18nAriaZh));
+  });
+}
+
+function wordPacks() { return state.language === "zh" ? CHINESE_PAIRS : DEFAULT_PAIRS; }
+function customStorageKey() { return state.language === "zh" ? "hush-custom-pairs-zh" : "hush-custom-pairs"; }
 function saveSetup() {
-  saveStoredJson("hush-setup", { players: state.players, avatars: state.avatars, imposterCount: state.imposterCount, whiteCount: state.whiteCount, category: state.category });
+  saveStoredJson("hush-setup", { players: state.players, avatars: state.avatars, imposterCount: state.imposterCount, whiteCount: state.whiteCount, category: state.category, language: state.language });
 }
 function saveSessionGame() {
   if (!state.roles.length || ["home", "setup", "result"].includes(state.screen)) return;
@@ -121,12 +149,12 @@ function saveSessionGame() {
 }
 function normalizeWord(value) { return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase(); }
 function activeIndices() { return state.roles.map((role, i) => role.active ? i : -1).filter(i => i >= 0); }
-function roleName(type) { return type === "civilian" ? "a Civilian" : type === "imposter" ? "an Imposter" : "Mr. White"; }
+function roleName(type) { return type === "civilian" ? t("a Civilian", "平民") : type === "imposter" ? t("an Imposter", "卧底") : t("Mr. White", "白板"); }
 function roleCounter(label, type, count) {
   const totalInfiltrators = state.imposterCount + state.whiteCount;
   const atMaximum = totalInfiltrators >= state.players.length - 2;
   const otherCount = type === "imposter" ? state.whiteCount : state.imposterCount;
-  return `<div class="role-counter"><span><b>${label}</b><small>${type === "imposter" ? "Related word" : "No word"}</small></span><div class="mini-stepper"><button data-role-type="${type}" data-delta="-1" aria-label="Fewer ${label}" ${count === 0 || totalInfiltrators === 1 ? "disabled" : ""}>−</button><strong aria-live="polite">${count}</strong><button data-role-type="${type}" data-delta="1" aria-label="More ${label}" ${atMaximum && otherCount === 0 ? "disabled" : ""}>+</button></div></div>`;
+  return `<div class="role-counter"><span><b>${label}</b><small>${type === "imposter" ? t("Related word", "相近的词") : t("No word", "没有词语")}</small></span><div class="mini-stepper"><button data-role-type="${type}" data-delta="-1" aria-label="${t("Fewer", "减少")} ${label}" ${count === 0 || totalInfiltrators === 1 ? "disabled" : ""}>−</button><strong aria-live="polite">${count}</strong><button data-role-type="${type}" data-delta="1" aria-label="${t("More", "增加")} ${label}" ${atMaximum && otherCount === 0 ? "disabled" : ""}>+</button></div></div>`;
 }
 let renderedScreen = null;
 function render() {
@@ -136,6 +164,7 @@ function render() {
   state.timerId = null;
   const views = { home, setup, handoff, role, round, vote, elimination, whiteGuess, result };
   app.innerHTML = views[state.screen]();
+  localizeShell();
   if (!screenChanged) app.firstElementChild?.classList.add("no-enter");
   if (screenChanged) {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -152,51 +181,52 @@ function render() {
 
 function home() { return `
   <section class="screen hero">
-    <p class="eyebrow">LITTLE FRIENDS, BIG SECRETS</p>
-    <h1>A cozy little<br><span>game of secrets.</span></h1>
-    <p class="lede">Gather your friends, pass the phone, and find the sneaky one. A little bluffing, a lot of giggles.</p>
-    <div class="button-row">${resumableGame ? `<button class="button primary" data-action="resume-game">Continue game</button><button class="button secondary" data-action="new-game">Start over</button>` : `<button class="button primary" data-action="new-game">Start a game</button>`}<button class="button secondary" data-action="open-help">How it works</button></div>
+    <div class="language-toggle home-language" role="group" aria-label="${t("App language", "应用语言")}"><button type="button" data-action="language-en" aria-pressed="${state.language === "en"}" lang="en">English</button><button type="button" data-action="language-zh" aria-pressed="${state.language === "zh"}" lang="zh-Hans">中文</button></div>
+    <p class="eyebrow">${t("LITTLE FRIENDS, BIG SECRETS", "小伙伴，大秘密")}</p>
+    <h1>${t("A cozy little", "轻松温馨的")}<br><span>${t("game of secrets.", "秘密游戏。")}</span></h1>
+    <p class="lede">${t("Gather your friends, pass the phone, and find the sneaky one. A little bluffing, a lot of giggles.", "叫上朋友，传递手机，找出藏在你们之中的卧底。一起斗智，放声欢笑。")}</p>
+    <div class="button-row">${resumableGame ? `<button class="button primary" data-action="resume-game">${t("Continue game", "继续游戏")}</button><button class="button secondary" data-action="new-game">${t("Start over", "重新开始")}</button>` : `<button class="button primary" data-action="new-game">${t("Start a game", "开始游戏")}</button>`}<button class="button secondary" data-action="open-help">${t("How it works", "游戏玩法")}</button></div>
     <div class="hero-art" aria-hidden="true"><img src="friends.svg" alt="" width="600" height="230"></div>
-    <p class="tiny offline-status">${state.offlineStatus === "ready" ? "● Offline ready" : state.offlineStatus === "unavailable" ? "Offline mode unavailable" : "Preparing offline play…"} • 3–12 players</p>
+    <p class="tiny offline-status">${state.offlineStatus === "ready" ? t("● Offline ready", "● 已可离线游玩") : state.offlineStatus === "unavailable" ? t("Offline mode unavailable", "离线模式不可用") : t("Preparing offline play…", "正在准备离线游戏…")} • ${t("3–12 players", "3–12 名玩家")}</p>
   </section>`; }
 
 function setup() { return `
   <section class="screen">
-    <p class="eyebrow">GAME SETUP</p><h2>Gather your little crew.</h2>
+    <p class="eyebrow">${t("GAME SETUP", "游戏设置")}</p><h2>${t("Gather your little crew.", "召集你的小伙伴。")}</h2>
     <div class="setup-columns">
       <div>
-        <div class="stepper"><div><b>Players</b><div class="tiny">3 to 12 people</div></div><div class="stepper-controls"><button data-action="players-down" aria-label="Fewer players" ${state.players.length <= 3 ? "disabled" : ""}>−</button><span aria-live="polite">${state.players.length}</span><button data-action="players-up" aria-label="More players" ${state.players.length >= 12 ? "disabled" : ""}>+</button></div></div>
+        <div class="stepper"><div><b>${t("Players", "玩家")}</b><div class="tiny">${t("3 to 12 people", "3 至 12 人")}</div></div><div class="stepper-controls"><button data-action="players-down" aria-label="${t("Fewer players", "减少玩家")}" ${state.players.length <= 3 ? "disabled" : ""}>−</button><span aria-live="polite">${state.players.length}</span><button data-action="players-up" aria-label="${t("More players", "增加玩家")}" ${state.players.length >= 12 ? "disabled" : ""}>+</button></div></div>
         <div class="player-list">${state.players.map(playerSetup).join("")}</div>
       </div>
       <div>
-        <div class="section"><div class="section-heading"><h3>Hidden roles</h3><small>${state.players.length - state.imposterCount - state.whiteCount} Civilians</small></div>
-          <div class="role-count-list">${roleCounter("Imposters", "imposter", state.imposterCount)}${roleCounter("Mr. White", "white", state.whiteCount)}</div>
-          <p class="tiny">At least two players remain Civilians. Imposters and Civilians only see their secret word—not their role.</p>
+        <div class="section"><div class="section-heading"><h3>${t("Hidden roles", "隐藏身份")}</h3><small>${state.players.length - state.imposterCount - state.whiteCount} ${t("Civilians", "平民")}</small></div>
+          <div class="role-count-list">${roleCounter(t("Imposters", "卧底"), "imposter", state.imposterCount)}${roleCounter(t("Mr. White", "白板"), "white", state.whiteCount)}</div>
+          <p class="tiny">${t("At least two players remain Civilians. Imposters and Civilians only see their secret word—not their role.", "至少保留两名平民。卧底和平民只能看到自己的词语，不会知道自己的身份。")}</p>
         </div>
-        <label class="field-label" for="category">WORD PACK</label>
-        <select id="category">${[...Object.keys(DEFAULT_PAIRS), ...(state.customPairs.length ? ["My words"] : [])].map(c => `<option ${c === state.category ? "selected" : ""}>${c}</option>`).join("")}</select>
-        <p class="tiny word-note">↻ Word-pair sides are randomly swapped every game.</p>
+        <label class="field-label" for="category">${state.language === "zh" ? "词库" : "WORD PACK"}</label>
+        <select id="category">${[...Object.keys(wordPacks()), ...(state.customPairs.length ? ["My words"] : [])].map(c => `<option value="${escapeHtml(c)}" ${c === state.category ? "selected" : ""}>${state.language === "zh" ? CHINESE_PACK_LABELS[c] || escapeHtml(c) : escapeHtml(c)}</option>`).join("")}</select>
+        <p class="tiny word-note">${t("↻ Word-pair sides are randomly swapped every game.", "↻ 每局随机交换平民词和卧底词。")}</p>
       </div>
     </div>
-    <div class="button-row"><button class="button primary wide" data-action="start-game">Assign secret roles</button><button class="button secondary" data-action="custom-words">Add words</button></div>
+    <div class="button-row"><button class="button primary wide" data-action="start-game">${t("Assign secret roles", "分配秘密身份")}</button><button class="button secondary" data-action="custom-words">${t("Add words", "添加词语")}</button></div>
   </section>`; }
 
 function handoff() {
   const name = names()[state.revealIndex];
-  return `<section class="screen handoff">${playerAvatar(state.revealIndex, true)}<p class="eyebrow">PLAYER ${state.revealIndex + 1} OF ${state.players.length}</p><h2>Pass to ${escapeHtml(name)}</h2><p class="privacy">Make sure nobody else can see the screen. Hold the button when you're ready.</p><button class="button primary wide hold-button" data-action="hold-reveal">Hold to reveal<div class="progress"><i></i></div></button></section>`;
+  return `<section class="screen handoff">${playerAvatar(state.revealIndex, true)}<p class="eyebrow">${t("Player {index} of {total}", "第 {index} 位玩家，共 {total} 位", { index: state.revealIndex + 1, total: state.players.length })}</p><h2>${t("Pass to {name}", "请交给 {name}", { name: escapeHtml(name) })}</h2><p class="privacy">${t("Make sure nobody else can see the screen. Hold the button when you're ready.", "确保其他人看不到屏幕。准备好后，长按按钮。")}</p><button class="button primary wide hold-button" data-action="hold-reveal">${t("Hold to reveal", "长按查看")}<div class="progress"><i></i></div></button></section>`;
 }
 
 function role() {
   const role = state.roles[state.revealIndex];
   const isWhite = role.type === "white";
-  return `<section class="screen secret-screen"><p class="eyebrow">YOUR SECRET</p><div class="role-card ${isWhite ? "imposter" : ""}"><div class="card-stamp">TOP<br>SECRET</div><div><span class="role-label">${isWhite ? "YOU ARE MR. WHITE" : "YOUR WORD IS"}</span><h2 class="secret-word">${isWhite ? "No word." : escapeHtml(role.word)}</h2></div><p class="role-note">${isWhite ? "Listen carefully and bluff. If voted out, you get one chance to guess the Civilians' word." : "You might be a Civilian or an Imposter. Your word alone does not reveal which—listen carefully to the clues."}</p></div><button class="button primary wide" data-action="hide-role" style="margin-top:18px">I've got it — hide my secret</button></section>`;
+  return `<section class="screen secret-screen"><p class="eyebrow">${t("YOUR SECRET", "你的秘密")}</p><div class="role-card ${isWhite ? "imposter" : ""}"><div class="card-stamp">${t("TOP", "绝密")}<br>${t("SECRET", "档案")}</div><div><span class="role-label">${isWhite ? t("YOU ARE MR. WHITE", "你是白板") : t("YOUR WORD IS", "你的词语是")}</span><h2 class="secret-word">${isWhite ? t("No word.", "你没有词语。") : escapeHtml(role.word)}</h2></div><p class="role-note">${isWhite ? t("Listen carefully and bluff. If voted out, you get one chance to guess the Civilians' word.", "仔细听线索，巧妙伪装。被投票淘汰后，你有一次机会猜平民的词语。") : t("You might be a Civilian or an Imposter. Your word alone does not reveal which—listen carefully to the clues.", "你可能是平民，也可能是卧底。仅凭词语无法判断身份，请仔细听大家的线索。")}</p></div><button class="button primary wide" data-action="hide-role" style="margin-top:18px">${t("I've got it — hide my secret", "记住了，隐藏我的秘密")}</button></section>`;
 }
 
 function round() {
   const pct = `${(state.remaining / state.duration) * 100}%`;
   const order = discussionOrder();
   const speaker = order[state.turnPosition % order.length];
-  return `<section class="screen"><div class="game-header"><div><p class="eyebrow">DISCUSSION</p><h2>Describe your word.</h2></div><span class="round-pill">ROUND ${state.roundNumber}</span></div><div class="speaker-card"><span>NOW SPEAKING · CLUE CYCLE ${state.clueCycle}</span><b class="player-identity">${playerAvatar(speaker)}${escapeHtml(names()[speaker])}</b><small>${state.turnPosition + 1} of ${order.length}</small></div><div class="timer ${state.timerRunning ? "is-running" : ""} ${state.remaining === 0 ? "is-done" : ""}" style="--timer:${pct}"><div class="timer-inner"><div class="timer-time">${formatTime(state.remaining)}</div><small>${state.remaining === 0 ? "TIME'S UP" : state.timerRunning ? "COUNTING" : "READY"}</small></div></div><div class="timer-adjust" aria-label="Adjust speaking time"><button data-action="timer-down" aria-label="Remove five seconds" ${state.duration <= 10 ? "disabled" : ""}>−5</button><span><b>${state.duration}s</b><small>per person</small></span><button data-action="timer-up" aria-label="Add five seconds" ${state.duration >= 180 ? "disabled" : ""}>+5</button></div><div class="timer-actions"><button class="button secondary" data-action="reset-timer">Reset</button><button class="button primary" data-action="toggle-timer">${state.timerRunning ? "Pause" : state.remaining < state.duration && state.remaining > 0 ? "Resume" : "Start"}</button><button class="button secondary" data-action="next-speaker">Next player →</button></div><button class="button vote-button wide" data-action="vote">End discussion & vote</button></section>`;
+  return `<section class="screen"><div class="game-header"><div><p class="eyebrow">${t("DISCUSSION", "讨论")}</p><h2>${t("Describe your word.", "描述你的词语。")}</h2></div><span class="round-pill">${t("Round {round}", "第 {round} 轮", { round: state.roundNumber })}</span></div><div class="speaker-card"><span>${t("Now speaking · Clue cycle {cycle}", "当前发言 · 第 {cycle} 次描述", { cycle: state.clueCycle })}</span><b class="player-identity">${playerAvatar(speaker)}${escapeHtml(names()[speaker])}</b><small>${t("{index} of {total}", "第 {index} 位，共 {total} 位", { index: state.turnPosition + 1, total: order.length })}</small></div><div class="timer ${state.timerRunning ? "is-running" : ""} ${state.remaining === 0 ? "is-done" : ""}" style="--timer:${pct}"><div class="timer-inner"><div class="timer-time">${formatTime(state.remaining)}</div><small>${state.remaining === 0 ? t("TIME'S UP", "时间到") : state.timerRunning ? t("COUNTING", "计时中") : t("READY", "准备就绪")}</small></div></div><div class="timer-adjust" aria-label="${t("Adjust speaking time", "调整发言时间")}"><button data-action="timer-down" aria-label="${t("Remove five seconds", "减少五秒")}" ${state.duration <= 10 ? "disabled" : ""}>−5</button><span><b>${state.duration}${t("s", "秒")}</b><small>${t("per person", "每人")}</small></span><button data-action="timer-up" aria-label="${t("Add five seconds", "增加五秒")}" ${state.duration >= 180 ? "disabled" : ""}>+5</button></div><div class="timer-actions"><button class="button secondary" data-action="reset-timer">${t("Reset", "重置")}</button><button class="button primary" data-action="toggle-timer">${state.timerRunning ? t("Pause", "暂停") : state.remaining < state.duration && state.remaining > 0 ? t("Resume", "继续") : t("Start", "开始")}</button><button class="button secondary" data-action="next-speaker">${t("Next player →", "下一位 →")}</button></div><button class="button vote-button wide" data-action="vote">${t("End discussion & vote", "结束讨论并投票")}</button></section>`;
 }
 
 function discussionOrder() {
@@ -211,28 +241,28 @@ function chooseStarter(allowMrWhite = false) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function vote() { return `<section class="screen"><p class="eyebrow">ROUND ${state.roundNumber} • THE VOTE</p><h2>Who seems suspicious?</h2><p class="muted">Only surviving players can be eliminated. If the vote is tied, discuss and vote again until one player is chosen.</p><div class="vote-list">${activeIndices().map(i => `<button class="vote ${state.selectedVote === i ? "selected" : ""}" data-vote="${i}" aria-pressed="${state.selectedVote === i}"><span class="player-identity">${playerAvatar(i)}${escapeHtml(names()[i])}</span><span>${state.selectedVote === i ? "SELECTED" : "TAP TO VOTE"}</span></button>`).join("")}</div><div class="button-row"><button class="button danger wide" data-action="eliminate" ${state.selectedVote === null ? "disabled" : ""}>${state.selectedVote === null ? "Choose a player" : `Eliminate ${escapeHtml(names()[state.selectedVote])}`}</button><button class="button secondary" data-action="back-round">Back</button></div></section>`; }
+function vote() { return `<section class="screen"><p class="eyebrow">${t("Round {round}", "第 {round} 轮", { round: state.roundNumber })} · ${t("THE VOTE", "投票")}</p><h2>${t("Who seems suspicious?", "谁最可疑？")}</h2><p class="muted">${t("Only surviving players can be eliminated. If the vote is tied, discuss and vote again until one player is chosen.", "只能淘汰仍在场的玩家。如果票数相同，请继续讨论并重新投票，直到选出一位玩家。")}</p><div class="vote-list">${activeIndices().map(i => `<button class="vote ${state.selectedVote === i ? "selected" : ""}" data-vote="${i}" aria-pressed="${state.selectedVote === i}"><span class="player-identity">${playerAvatar(i)}${escapeHtml(names()[i])}</span><span>${state.selectedVote === i ? t("SELECTED", "已选择") : t("TAP TO VOTE", "点击投票")}</span></button>`).join("")}</div><div class="button-row"><button class="button danger wide" data-action="eliminate" ${state.selectedVote === null ? "disabled" : ""}>${state.selectedVote === null ? t("Choose a player", "选择一位玩家") : t("Eliminate {name}", "淘汰 {name}", { name: escapeHtml(names()[state.selectedVote]) })}</button><button class="button secondary" data-action="back-round">${t("Back", "返回")}</button></div></section>`; }
 
 function elimination() {
   const i = state.eliminatedIndex, role = state.roles[i];
-  return `<section class="screen reveal-result elimination-reveal"><div class="reveal-rays" aria-hidden="true"></div><p class="eyebrow">PLAYER ELIMINATED</p><div class="eliminated-avatar">${playerAvatar(i, true)}</div><div class="result-icon">${role.type === "civilian" ? "😬" : role.type === "imposter" ? "🕵️" : "⬜"}</div><h2>${escapeHtml(names()[i])} was ${roleName(role.type)}.</h2><p class="lede" style="margin-inline:auto">${role.type === "white" ? "Mr. White now gets one final chance to steal the game." : role.type === "imposter" ? "One Imposter is out. Are there more hiding?" : "An innocent Civilian has been eliminated."}</p><button class="button primary wide" data-action="after-elimination">${role.type === "white" ? "Make the final guess" : "Check the game"}</button></section>`;
+  return `<section class="screen reveal-result elimination-reveal"><div class="reveal-rays" aria-hidden="true"></div><p class="eyebrow">${t("PLAYER ELIMINATED", "玩家已淘汰")}</p><div class="eliminated-avatar">${playerAvatar(i, true)}</div><div class="result-icon">${role.type === "civilian" ? "😬" : role.type === "imposter" ? "🕵️" : "⬜"}</div><h2>${t("{name} was {role}.", "{name} 的身份是{role}。", { name: escapeHtml(names()[i]), role: roleName(role.type) })}</h2><p class="lede" style="margin-inline:auto">${role.type === "white" ? t("Mr. White now gets one final chance to steal the game.", "白板现在有最后一次猜词机会，可以逆转获胜。") : role.type === "imposter" ? t("One Imposter is out. Are there more hiding?", "一名卧底已出局。还有其他卧底吗？") : t("An innocent Civilian has been eliminated.", "一名无辜的平民被淘汰了。")}</p><button class="button primary wide" data-action="after-elimination">${role.type === "white" ? t("Make the final guess", "进行最后猜词") : t("Check the game", "继续游戏")}</button></section>`;
 }
 
 function whiteGuess() {
-  return `<section class="screen"><p class="eyebrow">MR. WHITE'S LAST CHANCE</p><h2>Guess the Civilians' word.</h2><p class="muted"><b>${escapeHtml(names()[state.eliminatedIndex])}</b> gets one exact guess. Capitalization and surrounding spaces do not matter.</p><form id="white-guess-form"><label class="field-label" for="white-guess">FINAL GUESS</label><input id="white-guess" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="Type the word"><button class="button primary wide" type="submit" style="margin-top:14px">Lock in guess</button></form></section>`;
+  return `<section class="screen"><p class="eyebrow">${t("MR. WHITE'S LAST CHANCE", "白板的最后机会")}</p><h2>${t("Guess the Civilians' word.", "猜出平民的词语。")}</h2><p class="muted"><b>${escapeHtml(names()[state.eliminatedIndex])}</b>${t(" gets one exact guess. Capitalization and surrounding spaces do not matter.", " 有一次猜词机会，答案必须准确。大小写和首尾空格不影响判断。")}</p><form id="white-guess-form"><label class="field-label" for="white-guess">${t("FINAL GUESS", "最后猜词")}</label><input id="white-guess" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="${t("Type the word", "输入词语")}"><button class="button primary wide" type="submit" style="margin-top:14px">${t("Lock in guess", "确认答案")}</button></form></section>`;
 }
 
 function result() {
-  const label = state.winner === "civilian" ? "Civilians win!" : state.winner === "infiltrator" ? "Infiltrators win!" : "Mr. White wins!";
-  const note = state.winner === "civilian" ? "Every Imposter and Mr. White has been caught." : state.winner === "infiltrator" ? "Only one Civilian remains, so the infiltrator faction takes the game." : "Mr. White cracked the Civilians' word after being eliminated.";
+  const label = state.winner === "civilian" ? t("Civilians win!", "平民获胜！") : state.winner === "infiltrator" ? t("Infiltrators win!", "卧底阵营获胜！") : t("Mr. White wins!", "白板获胜！");
+  const note = state.winner === "civilian" ? t("Every Imposter and Mr. White has been caught.", "所有卧底和白板都已被找出。") : state.winner === "infiltrator" ? t("Only one Civilian remains, so the infiltrator faction takes the game.", "只剩一名平民，卧底阵营赢得了游戏。") : t("Mr. White cracked the Civilians' word after being eliminated.", "白板被淘汰后猜中了平民的词语。");
   const particles = Array.from({length: 30}, (_, i) => `<i style="--x:${(i * 43) % 101 - 50};--r:${(i * 67) % 360};--d:${(i % 7) * .08}s"></i>`).join("");
   const playerRows = state.roles.map((role, index) => {
     const won = state.winner === "civilian" && role.type === "civilian" || state.winner === "infiltrator" && role.type !== "civilian" || state.winner === "white" && index === state.eliminatedIndex;
     const guessWon = state.winner === "white" && index === state.eliminatedIndex;
-    const guess = role.type === "white" && state.whiteGuesses[index] ? `<em class="${guessWon ? "guess-correct" : "guess-wrong"}">${guessWon ? "Correct" : "Incorrect"}: “${escapeHtml(state.whiteGuesses[index])}”</em>` : "";
-    return `<div class="player-outcome ${won ? "won" : "lost"}"><span class="player-identity">${playerAvatar(index)}<span class="outcome-name">${escapeHtml(names()[index])}<small>${roleName(role.type)}${guess}</small></span></span><span class="outcome-tags">${won ? `<b class="status winner-status">Winner</b>` : ""}<b class="status ${role.active ? "alive-status" : "out-status"}">${role.active ? "Survived" : `Voted · R${role.eliminatedRound || "?"}`}</b></span></div>`;
+    const guess = role.type === "white" && state.whiteGuesses[index] ? `<em class="${guessWon ? "guess-correct" : "guess-wrong"}">${guessWon ? t("Correct", "正确") : t("Incorrect", "错误")}: “${escapeHtml(state.whiteGuesses[index])}”</em>` : "";
+    return `<div class="player-outcome ${won ? "won" : "lost"}"><span class="player-identity">${playerAvatar(index)}<span class="outcome-name">${escapeHtml(names()[index])}<small>${roleName(role.type)}${guess}</small></span></span><span class="outcome-tags">${won ? `<b class="status winner-status">${t("Winner", "获胜")}</b>` : ""}<b class="status ${role.active ? "alive-status" : "out-status"}">${role.active ? t("Survived", "仍在场") : t("Voted · R{round}", "已淘汰 · 第 {round} 轮", { round: role.eliminatedRound || "?" })}</b></span></div>`;
   }).join("");
-  return `<section class="screen reveal-result celebration winner-${state.winner}"><div class="confetti" aria-hidden="true">${particles}</div><div class="victory-halo" aria-hidden="true"></div><p class="eyebrow">GAME OVER</p><div class="result-icon">${state.winner === "civilian" ? "🏆" : state.winner === "infiltrator" ? "🕵️" : "⬜"}</div><h2>${label}</h2><p class="lede" style="margin-inline:auto">${note}</p><div class="word-pair"><span class="word-chip">Civilian word: <b>${escapeHtml(state.pair[0])}</b></span><span class="word-chip">Imposter word: <b>${escapeHtml(state.pair[1])}</b></span></div><div class="final-roles">${playerRows}</div><div class="button-row"><button class="button primary wide" data-action="play-again">Play again</button><button class="button secondary wide" data-action="home">Home</button></div></section>`;
+  return `<section class="screen reveal-result celebration winner-${state.winner}"><div class="confetti" aria-hidden="true">${particles}</div><div class="victory-halo" aria-hidden="true"></div><p class="eyebrow">${t("GAME OVER", "游戏结束")}</p><div class="result-icon">${state.winner === "civilian" ? "🏆" : state.winner === "infiltrator" ? "🕵️" : "⬜"}</div><h2>${label}</h2><p class="lede" style="margin-inline:auto">${note}</p><div class="word-pair"><span class="word-chip">${t("Civilian word:", "平民词：")} <b>${escapeHtml(state.pair[0])}</b></span><span class="word-chip">${t("Imposter word:", "卧底词：")} <b>${escapeHtml(state.pair[1])}</b></span></div><div class="final-roles">${playerRows}</div><div class="button-row"><button class="button primary wide" data-action="play-again">${t("Play again", "再玩一局")}</button><button class="button secondary wide" data-action="home">${t("Home", "首页")}</button></div></section>`;
 }
 
 function startGame() {
@@ -246,11 +276,11 @@ function startGame() {
     inputs[first]?.setAttribute("aria-invalid", "true");
     inputs[duplicate]?.setAttribute("aria-invalid", "true");
     inputs[duplicate]?.focus();
-    toast("Each player needs a unique name");
+    toast(t("Each player needs a unique name", "每位玩家的名字必须不同"));
     return;
   }
   state.remaining = state.duration;
-  const source = state.category === "My words" ? state.customPairs : DEFAULT_PAIRS[state.category];
+  const source = state.category === "My words" ? state.customPairs : wordPacks()[state.category];
   state.pair = [...source[Math.floor(Math.random() * source.length)]];
   if (Math.random() < .5) state.pair.reverse();
   const civilianCount = state.players.length - state.imposterCount - state.whiteCount;
@@ -281,6 +311,8 @@ function openCustomWords() {
   syncSetupInputs();
   saveSetup();
   renderCustomPairs();
+  document.querySelector("#custom-word-one").placeholder = state.language === "zh" ? "包子" : "Coffee";
+  document.querySelector("#custom-word-two").placeholder = state.language === "zh" ? "馒头" : "Tea";
   document.querySelector("#words-dialog").showModal();
   document.querySelector("#custom-word-one").focus();
 }
@@ -288,7 +320,7 @@ function openCustomWords() {
 function renderCustomPairs() {
   const list = document.querySelector("#custom-pairs");
   if (!list) return;
-  list.innerHTML = state.customPairs.length ? `<p class="field-label">SAVED PAIRS</p>${state.customPairs.map((pair, index) => `<div class="custom-pair"><span><b>${escapeHtml(pair[0])}</b><small>↔</small><b>${escapeHtml(pair[1])}</b></span><button data-delete-pair="${index}" aria-label="Delete ${escapeHtml(pair[0])} and ${escapeHtml(pair[1])}">×</button></div>`).join("")}` : `<p class="empty-state">No custom pairs yet.</p>`;
+  list.innerHTML = state.customPairs.length ? `<p class="field-label">${t("SAVED PAIRS", "已保存的词语对")}</p>${state.customPairs.map((pair, index) => `<div class="custom-pair"><span><b>${escapeHtml(pair[0])}</b><small>↔</small><b>${escapeHtml(pair[1])}</b></span><button data-delete-pair="${index}" aria-label="${t("Delete {first} and {second}", "删除 {first} 和 {second}", { first: escapeHtml(pair[0]), second: escapeHtml(pair[1]) })}">×</button></div>`).join("")}` : `<p class="empty-state">${t("No custom pairs yet.", "还没有自定义词语对。")}</p>`;
 }
 
 function saveCustomPair() {
@@ -297,25 +329,25 @@ function saveCustomPair() {
   const first = firstInput.value.trim();
   const second = secondInput.value.trim();
   firstInput.removeAttribute("aria-invalid"); secondInput.removeAttribute("aria-invalid");
-  if (!first || !second) { (!first ? firstInput : secondInput).setAttribute("aria-invalid", "true"); toast("Enter both words"); return; }
-  if (normalizeWord(first) === normalizeWord(second)) { secondInput.setAttribute("aria-invalid", "true"); toast("Use two different words"); return; }
+  if (!first || !second) { (!first ? firstInput : secondInput).setAttribute("aria-invalid", "true"); toast(t("Enter both words", "请输入两个词语")); return; }
+  if (normalizeWord(first) === normalizeWord(second)) { secondInput.setAttribute("aria-invalid", "true"); toast(t("Use two different words", "请使用两个不同的词语")); return; }
   const duplicate = state.customPairs.some(pair => pair.map(normalizeWord).sort().join("|") === [normalizeWord(first), normalizeWord(second)].sort().join("|"));
-  if (duplicate) { toast("That pair is already saved"); return; }
-  if (state.customPairs.length >= 100) { toast("Custom word library is full"); return; }
+  if (duplicate) { toast(t("That pair is already saved", "这组词语已保存")); return; }
+  if (state.customPairs.length >= 100) { toast(t("Custom word library is full", "自定义词库已满")); return; }
   state.customPairs.push([first, second]);
-  saveStoredJson("hush-custom-pairs", state.customPairs);
+  saveStoredJson(customStorageKey(), state.customPairs);
   state.category = "My words"; saveSetup();
-  firstInput.value = ""; secondInput.value = ""; renderCustomPairs(); firstInput.focus(); toast("Word pair saved");
+  firstInput.value = ""; secondInput.value = ""; renderCustomPairs(); firstInput.focus(); toast(t("Word pair saved", "词语对已保存"));
 }
 
 function submitWhiteGuess() {
   const enteredGuess = document.querySelector("#white-guess")?.value.trim();
-  if (!enteredGuess) { toast("Enter one final guess"); return; }
+  if (!enteredGuess) { toast(t("Enter one final guess", "请输入最后的猜词答案")); return; }
   state.whiteGuesses[state.eliminatedIndex] = enteredGuess;
   if (normalizeWord(enteredGuess) === normalizeWord(state.pair[0])) {
     state.whiteGuessed = true; state.winner = "white"; state.screen = "result"; clearSessionGame(); resumableGame = null; render();
   } else {
-    toast("Incorrect guess"); finishElimination();
+    toast(t("Incorrect guess", "猜错了")); finishElimination();
   }
 }
 
@@ -326,7 +358,7 @@ function pauseTimer() {
 }
 function finishTimer() {
   clearInterval(state.timerId); state.timerId = null; state.timerRunning = false; state.timerDeadline = null; state.remaining = 0;
-  navigator.vibrate?.([150,80,150]); render(); toast("Time's up — next player!");
+  navigator.vibrate?.([150,80,150]); render(); toast(t("Time's up — next player!", "时间到，下一位！"));
 }
 function updateTimerDisplay() {
   if (!state.timerRunning || !state.timerDeadline) return;
@@ -348,9 +380,9 @@ document.addEventListener("click", e => {
   const deletePairButton = e.target.closest("[data-delete-pair]");
   if (deletePairButton) {
     state.customPairs.splice(+deletePairButton.dataset.deletePair, 1);
-    saveStoredJson("hush-custom-pairs", state.customPairs);
+    saveStoredJson(customStorageKey(), state.customPairs);
     if (!state.customPairs.length && state.category === "My words") state.category = "Everyday";
-    saveSetup(); renderCustomPairs(); toast("Word pair removed"); return;
+    saveSetup(); renderCustomPairs(); toast(t("Word pair removed", "词语对已删除")); return;
   }
   const avatarButton = e.target.closest("[data-avatar-player]");
   if (avatarButton && state.screen === "setup") {
@@ -378,9 +410,15 @@ document.addEventListener("click", e => {
   const voteButton = e.target.closest("[data-vote]");
   if (voteButton) { state.selectedVote = +voteButton.dataset.vote; render(); return; }
   const action = e.target.closest("[data-action]")?.dataset.action; if (!action) return;
-  if (action === "new-game") { if (resumableGame && !window.confirm("Start over and discard the saved game?")) return; clearSessionGame(); resumableGame = null; state.roles = []; state.screen = "setup"; render(); }
-  if (action === "resume-game" && resumableGame) { Object.assign(state, resumableGame, { timerId: null, timerRunning: false, timerDeadline: null }); resumableGame = null; render(); }
-  if (action === "home") { const activeGame = state.roles.length && !["home", "setup", "result"].includes(state.screen); if (activeGame && !window.confirm("Leave this game? Current progress will be lost.")) return; pauseTimer(); clearSessionGame(); resumableGame = null; state.roles = []; state.screen = "home"; render(); }
+  if ((action === "language-en" || action === "language-zh") && state.screen === "home") {
+    state.language = action === "language-zh" ? "zh" : "en";
+    state.customPairs = normalizeCustomPairs(loadStoredJson(customStorageKey(), []));
+    if (state.category === "My words" && !state.customPairs.length) state.category = "Everyday";
+    saveSetup(); render(); return;
+  }
+  if (action === "new-game") { if (resumableGame && !window.confirm(t("Start over and discard the saved game?", "重新开始并放弃已保存的游戏吗？"))) return; clearSessionGame(); resumableGame = null; state.roles = []; state.screen = "setup"; render(); }
+  if (action === "resume-game" && resumableGame) { Object.assign(state, resumableGame, { language: state.language, customPairs: state.customPairs, timerId: null, timerRunning: false, timerDeadline: null }); resumableGame = null; if (state.category === "My words" && !state.customPairs.length) state.category = "Everyday"; render(); }
+  if (action === "home") { const activeGame = state.roles.length && !["home", "setup", "result"].includes(state.screen); if (activeGame && !window.confirm(t("Leave this game? Current progress will be lost.", "离开游戏吗？当前进度将丢失。"))) return; pauseTimer(); clearSessionGame(); resumableGame = null; state.roles = []; state.screen = "home"; render(); }
   if (action === "open-help") { if (state.timerRunning) { pauseTimer(); render(); } document.querySelector("#help-dialog").showModal(); }
   if (action === "close-help") document.querySelector("#help-dialog").close();
   if (action === "players-up" && state.players.length < 12) { syncSetupInputs(); state.players.push(""); state.avatars = normalizeAvatars(state.avatars, state.players.length); saveSetup(); render(); }
@@ -393,10 +431,10 @@ document.addEventListener("click", e => {
   if (action === "toggle-timer") { if (state.timerRunning) pauseTimer(); else { if (state.remaining === 0) state.remaining = state.duration; state.timerRunning = true; state.timerDeadline = Date.now() + state.remaining * 1000; } render(); }
   if (action === "reset-timer") { pauseTimer(); state.remaining = state.duration; render(); }
   if (action === "timer-down" || action === "timer-up") { const delta = action === "timer-up" ? 5 : -5; if (state.timerRunning) updateTimerDisplay(); const previous = state.duration; state.duration = Math.max(10, Math.min(180, state.duration + delta)); const applied = state.duration - previous; state.remaining = Math.max(0, Math.min(state.duration, state.remaining + applied)); if (state.timerRunning) state.timerDeadline = Date.now() + state.remaining * 1000; if (state.timerRunning && state.remaining === 0) finishTimer(); else render(); }
-  if (action === "next-speaker") { pauseTimer(); const count = discussionOrder().length; state.turnPosition++; if (state.turnPosition >= count) { state.turnPosition = 0; state.clueCycle++; toast("Everyone has spoken — continue or vote"); } state.remaining = state.duration; render(); }
+  if (action === "next-speaker") { pauseTimer(); const count = discussionOrder().length; state.turnPosition++; if (state.turnPosition >= count) { state.turnPosition = 0; state.clueCycle++; toast(t("Everyone has spoken — continue or vote", "所有人都已发言，请继续讨论或投票")); } state.remaining = state.duration; render(); }
   if (action === "vote") { pauseTimer(); state.selectedVote = null; state.screen = "vote"; render(); }
   if (action === "back-round") { state.screen = "round"; render(); }
-  if (action === "eliminate" && state.selectedVote !== null) { if (!window.confirm(`Eliminate ${names()[state.selectedVote]}? This cannot be undone.`)) return; state.eliminatedIndex = state.selectedVote; state.roles[state.eliminatedIndex].active = false; state.roles[state.eliminatedIndex].eliminatedRound = state.roundNumber; state.screen = "elimination"; render(); }
+  if (action === "eliminate" && state.selectedVote !== null) { if (!window.confirm(t("Eliminate {name}? This cannot be undone.", "淘汰 {name} 吗？此操作无法撤销。", { name: names()[state.selectedVote] }))) return; state.eliminatedIndex = state.selectedVote; state.roles[state.eliminatedIndex].active = false; state.roles[state.eliminatedIndex].eliminatedRound = state.roundNumber; state.screen = "elimination"; render(); }
   if (action === "after-elimination") { if (state.roles[state.eliminatedIndex].type === "white") { state.screen = "whiteGuess"; render(); document.querySelector("#white-guess")?.focus(); } else finishElimination(); }
   if (action === "submit-guess") submitWhiteGuess();
   if (action === "play-again") { clearSessionGame(); resumableGame = null; state.roles = []; state.screen = "setup"; render(); }

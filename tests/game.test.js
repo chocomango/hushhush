@@ -11,13 +11,14 @@ const toastTemplate = { content: { firstElementChild: { cloneNode: () => ({ text
 const elements = new Map();
 const document = {
   hidden: false,
+  documentElement: { lang: "en" },
   body: { append(node) { sandbox.toasts.push(node.textContent); } },
   querySelector(selector) {
     if (selector === "#app") return app;
     if (selector === "#toast-template") return toastTemplate;
     return elements.get(selector) ?? null;
   },
-  querySelectorAll(selector) { return selector === "[data-player]" ? (elements.get("players") ?? []) : []; },
+  querySelectorAll(selector) { return selector === "[data-player]" ? (elements.get("players") ?? []) : (elements.get(selector) ?? []); },
   addEventListener(type, callback) { (listeners[type] ??= []).push(callback); }
 };
 const window = { scrollTo() {}, requestAnimationFrame(callback) { callback(); }, addEventListener() {}, confirm: () => true };
@@ -27,7 +28,7 @@ const sandbox = {
   Date, Math, toasts: [], pendingTimeout: null
 };
 vm.createContext(sandbox);
-const source = fs.readFileSync("app.js", "utf8") + `\nglobalThis.game = { state, names, duplicateNameIndex, shuffle, chooseStarter, discussionOrder, finishElimination, submitWhiteGuess, result, roleCounter, render, pauseTimer, saveSessionGame, saveSetup, loadSessionGame, normalizeAvatars, startGame, DEFAULT_PAIRS };`;
+const source = fs.readFileSync("app.js", "utf8") + `\nglobalThis.game = { state, names, duplicateNameIndex, shuffle, chooseStarter, discussionOrder, finishElimination, submitWhiteGuess, result, roleCounter, render, pauseTimer, saveSessionGame, saveSetup, loadSessionGame, normalizeAvatars, startGame, DEFAULT_PAIRS, CHINESE_PAIRS, home, setup, handoff, role, round, vote, elimination, whiteGuess, renderCustomPairs, localizeShell };`;
 vm.runInContext(fs.readFileSync("words.js", "utf8"), sandbox);
 vm.runInContext(source, sandbox);
 const game = sandbox.game;
@@ -51,6 +52,59 @@ function resetRoles(roles) {
 }
 
 const tests = [
+  ["start-screen toggle translates the whole app and returns to English", () => {
+    const shellText = { textContent: "HOW TO PLAY", dataset: { i18nZh: "游戏玩法" } };
+    const shellButton = { dataset: { i18nAriaZh: "关闭" }, label: "Close", getAttribute() { return this.label; }, setAttribute(key, value) { this.label = value; } };
+    elements.set("[data-i18n-zh]", [shellText]); elements.set("[data-i18n-aria-zh]", [shellButton]);
+    game.state.screen = "home"; clickTarget({ action: "language-zh" });
+    assert(app.innerHTML.includes('data-action="language-zh"') && app.innerHTML.includes("开始游戏"), "home toggle or translation missing");
+    assert(document.documentElement.lang === "zh-Hans" && shellText.textContent === "游戏玩法" && shellButton.label === "关闭", "shell not translated");
+    resetRoles([["civilian", true], ["civilian", true], ["white", false], ["imposter", true]]);
+    game.state.players[0] = "Start a game"; game.state.roles[0].word = "Secret <word>";
+    game.state.avatars = game.normalizeAvatars([], 4); game.state.eliminatedIndex = 2; game.state.winner = "civilian";
+    const views = [[game.setup, "分配秘密身份"], [game.handoff, "长按查看"], [game.role, "隐藏我的秘密"], [game.round, "结束讨论并投票"], [game.vote, "选择一位玩家"], [game.elimination, "最后猜词"], [game.whiteGuess, "确认答案"], [game.result, "再玩一局"]];
+    for (const [view, label] of views) assert(view().includes(label), "missing Chinese screen: " + label);
+    assert(game.setup().includes('value="Start a game"') && game.role().includes("Secret &lt;word&gt;"), "translation altered player content");
+    const list = { innerHTML: "" }; elements.set("#custom-pairs", list); game.state.customPairs = []; game.renderCustomPairs();
+    assert(list.innerHTML.includes("还没有自定义词语对"), "custom-word UI not translated");
+    game.state.screen = "home"; clickTarget({ action: "language-en" });
+    assert(app.innerHTML.includes("Start a game") && shellText.textContent === "HOW TO PLAY" && shellButton.label === "Close", "English restoration failed");
+    assert(!game.setup().includes('data-action="language-zh"'), "toggle still in setup");
+    elements.delete("#custom-pairs"); elements.delete("[data-i18n-zh]"); elements.delete("[data-i18n-aria-zh]");
+  }],
+  ["resuming respects the app language and preserves assigned words", () => {
+    resetRoles([["civilian", true], ["civilian", true], ["imposter", true]]);
+    game.state.language = "en"; game.saveSessionGame();
+    game.state.screen = "home"; clickTarget({ action: "language-zh" }); clickTarget({ action: "resume-game" });
+    assert(game.state.language === "zh" && game.state.pair.join(",") === "Moon,Sun", "resume changed app preference or assigned words");
+    game.state.screen = "home"; clickTarget({ action: "language-en" }); clickTarget({ action: "new-game" });
+  }],
+  ["Chinese toggle uses independent packs and custom storage", () => {
+    game.state.screen = "home"; game.state.category = "Everyday";
+    game.state.players = ["A", "B", "C"]; game.state.imposterCount = 1; game.state.whiteCount = 0;
+    sandbox.localStorage.setItem("hush-custom-pairs", JSON.stringify([["Coffee", "Tea"]]));
+    sandbox.localStorage.setItem("hush-custom-pairs-zh", JSON.stringify([["包子", "馒头"]]));
+    clickTarget({ action: "language-zh" });
+    assert(game.state.language === "zh" && game.state.customPairs[0][0] === "包子", "Chinese custom library not selected");
+    assert(JSON.parse(sandbox.localStorage.getItem("hush-setup")).language === "zh", "language preference not saved");
+    const seen = new Set();
+    for (const [category, pairs] of Object.entries(game.CHINESE_PAIRS)) {
+      for (const pair of pairs) {
+        assert(pair.length === 2 && pair.every(word => typeof word === "string" && word.length <= 40 && /[\u3400-\u9fff]/.test(word)) && pair[0] !== pair[1], "invalid Chinese pair");
+        const key = pair.slice().sort().join("|");
+        assert(!seen.has(key), "duplicate Chinese pair"); seen.add(key);
+      }
+      game.state.category = category; game.startGame();
+      assert(pairs.some(pair => pair.slice().sort().join("|") === game.state.pair.slice().sort().join("|")), "Chinese game used wrong library");
+      game.saveSessionGame();
+      assert(game.loadSessionGame().language === "zh", "resume lost language");
+    }
+    assert(seen.size === 96, "Chinese pack count changed");
+    game.state.screen = "home"; game.state.category = "My words";
+    clickTarget({ action: "language-en" });
+    assert(game.state.customPairs[0][0] === "Coffee", "English custom library lost");
+    game.state.category = "Everyday";
+  }],
   ["built-in library has valid distinct word pairs without duplicates", () => {
     const seen = new Set();
     for (const [category, pairs] of Object.entries(game.DEFAULT_PAIRS)) {

@@ -13,37 +13,37 @@
 <body>
   <div class="noise" aria-hidden="true"></div>
   <header class="topbar">
-    <button class="brand" data-action="home" aria-label="Return home">
+    <button class="brand" data-action="home" aria-label="Return home" data-i18n-aria-zh="返回首页">
       <span class="brand-mark" aria-hidden="true"></span><span>HUSH</span>
     </button>
-    <button class="icon-button" data-action="open-help" aria-label="How to play">?</button>
+    <button class="icon-button" data-action="open-help" aria-label="How to play" data-i18n-aria-zh="游戏玩法">?</button>
   </header>
 
   <main id="app"></main>
 
   <dialog id="help-dialog" aria-labelledby="help-title">
-    <button class="dialog-close" data-action="close-help" aria-label="Close">×</button>
-    <p class="eyebrow">HOW TO PLAY</p>
-    <h2 id="help-title">Blend in. Find the infiltrators.</h2>
+    <button class="dialog-close" data-action="close-help" aria-label="Close" data-i18n-aria-zh="关闭">×</button>
+    <p class="eyebrow" data-i18n-zh="游戏玩法">HOW TO PLAY</p>
+    <h2 id="help-title" data-i18n-zh="隐藏身份，找出卧底。">Blend in. Find the infiltrators.</h2>
     <ol class="rules">
-      <li><b>Pass the phone.</b> Each player privately reveals their secret.</li>
-      <li><b>Give clues.</b> Civilians share a word; Imposters get a similar word. Neither group knows which role they have. Mr. White gets no word and must bluff.</li>
-      <li><b>Start fairly.</b> Mr. White cannot speak first in the opening round, but may start later rounds.</li>
-      <li><b>Vote.</b> Eliminate one player, reveal their role, then continue with the survivors.</li>
-      <li><b>Win.</b> Civilians must eliminate every Imposter and Mr. White. The infiltrators win when only one Civilian remains. An eliminated Mr. White wins instantly by guessing the Civilian word.</li>
+      <li><b data-i18n-zh="传递手机。">Pass the phone.</b> <span data-i18n-zh="每位玩家单独查看自己的秘密。">Each player privately reveals their secret.</span></li>
+      <li><b data-i18n-zh="给出线索。">Give clues.</b> <span data-i18n-zh="平民获得相同的词语，卧底获得相近的词语。双方都不知道自己的身份。白板没有词语，必须靠伪装融入大家。">Civilians share a word; Imposters get a similar word. Neither group knows which role they have. Mr. White gets no word and must bluff.</span></li>
+      <li><b data-i18n-zh="公平开局。">Start fairly.</b> <span data-i18n-zh="第一轮不能由白板先发言，之后的轮次可以。">Mr. White cannot speak first in the opening round, but may start later rounds.</span></li>
+      <li><b data-i18n-zh="投票。">Vote.</b> <span data-i18n-zh="淘汰一名玩家，公布其身份，再由剩余玩家继续。">Eliminate one player, reveal their role, then continue with the survivors.</span></li>
+      <li><b data-i18n-zh="获胜。">Win.</b> <span data-i18n-zh="平民需要淘汰所有卧底和白板。只剩一名平民时，卧底阵营获胜。被淘汰的白板若猜中平民词，立即获胜。">Civilians must eliminate every Imposter and Mr. White. The infiltrators win when only one Civilian remains. An eliminated Mr. White wins instantly by guessing the Civilian word.</span></li>
     </ol>
-    <p class="muted">Based on the official Undercover pass-and-play rules.</p>
+    <p class="muted" data-i18n-zh="根据《谁是卧底》的官方传手机玩法规则。">Based on the official Undercover pass-and-play rules.</p>
   </dialog>
 
   <dialog id="words-dialog" aria-labelledby="words-title">
-    <button class="dialog-close" data-action="close-words" aria-label="Close">×</button>
-    <p class="eyebrow">CUSTOM WORDS</p>
-    <h2 id="words-title">Make your own pair.</h2>
-    <p class="muted">Add two related—but meaningfully different—words. Their sides will be randomized each game.</p>
+    <button class="dialog-close" data-action="close-words" aria-label="Close" data-i18n-aria-zh="关闭">×</button>
+    <p class="eyebrow" data-i18n-zh="自定义词语">CUSTOM WORDS</p>
+    <h2 id="words-title" data-i18n-zh="创建自己的词语对。">Make your own pair.</h2>
+    <p class="muted" data-i18n-zh="添加两个有关联但含义不同的词语。每局会随机分配平民词和卧底词。">Add two related—but meaningfully different—words. Their sides will be randomized each game.</p>
     <form class="custom-word-form" id="custom-word-form">
-      <label><span class="field-label">FIRST WORD</span><input id="custom-word-one" maxlength="40" autocomplete="off" placeholder="Coffee"></label>
-      <label><span class="field-label">RELATED WORD</span><input id="custom-word-two" maxlength="40" autocomplete="off" placeholder="Tea"></label>
-      <button class="button primary wide" type="submit">Add word pair</button>
+      <label><span class="field-label" data-i18n-zh="第一个词语">FIRST WORD</span><input id="custom-word-one" maxlength="40" autocomplete="off" placeholder="Coffee"></label>
+      <label><span class="field-label" data-i18n-zh="相关词语">RELATED WORD</span><input id="custom-word-two" maxlength="40" autocomplete="off" placeholder="Tea"></label>
+      <button class="button primary wide" type="submit" data-i18n-zh="添加词语对">Add word pair</button>
     </form>
     <div class="custom-pairs" id="custom-pairs"></div>
   </dialog>

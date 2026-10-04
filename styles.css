@@ -278,3 +278,10 @@ input::placeholder { color: #8b7e73; }
 .eliminated-avatar + .result-icon { font-size: 2rem; margin-top: 0; }
 
 .speaker-card .player-avatar { grid-column: auto; }
+
+.language-toggle { display: flex; gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel); }
+.language-toggle button { flex: 1; min-height: 42px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); cursor: pointer; font-weight: 750; }
+.language-toggle button[aria-pressed="true"] { background: var(--violet); color: var(--ink); }
+
+.home-language { max-width: 240px; margin: 0 auto 24px; }
+html[lang="zh-Hans"] .eyebrow { letter-spacing: .1em; }
